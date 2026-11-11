@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "vite build",
     "preview": "vite preview",
-    "deploy:cloudflare": "npx wrangler pages deploy dist --project-name shambala-divine-music"
+    "deploy:cloudflare": "npx wrangler pages deploy dist --project-name happyshambala"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
