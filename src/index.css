@@ -1,0 +1,777 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================
+   DESIGN TOKENS — DARK THEME (Midnight Crimson-Gold)
+   ============================================= */
+:root {
+  --font-heading: 'Lexend Deca', sans-serif;
+  --font-body: 'Lexend Deca', sans-serif;
+
+  /* Backgrounds */
+  --bg-deep:       #0A0713;
+  --bg-surface:    #13091B;
+  --bg-sidebar:    rgba(12, 7, 20, 0.97);
+  --bg-header:     rgba(18, 9, 28, 0.92);
+  --bg-player:     rgba(16, 8, 24, 0.95);
+  --bg-main-from:  #25081E;
+  --bg-main-to:    #0A0713;
+  --bg-app:        radial-gradient(circle at 50% 0%, #3D0721 0%, #0A0713 80%);
+
+  --bg-card:        rgba(255, 255, 255, 0.05);
+  --bg-card-hover:  rgba(255, 255, 255, 0.09);
+
+  /* Text */
+  --text-primary:    #FFFFFF;
+  --text-secondary:  #94A3B8;
+  --text-tertiary:   #64748B;
+
+  /* Accents — Reference UI Palette */
+  --accent-gold:           #F59E0B; /* Imperial Gold */
+  --accent-gold-bright:    #FACC15; /* Solar Yellow */
+  --accent-crimson:        #E11D48; /* Crimson Red */
+  --accent-ruby:           #BE123C; /* Ruby Red */
+  --accent-rose:           #F43F5E; /* Rose Red */
+
+  /* Borders */
+  --border-glass:   rgba(255, 255, 255, 0.12);
+  --border-gold:    rgba(245, 158, 11, 0.35);
+  --border-rose:    rgba(225, 29, 72, 0.35);
+  --border-subtle:  rgba(255, 255, 255, 0.06);
+
+  /* Scrubber */
+  --range-track:    rgba(255, 255, 255, 0.15);
+  --range-thumb:    #FACC15;
+  --range-thumb-glow: rgba(225, 29, 72, 0.8);
+
+  /* Scrollbar */
+  --scrollbar-track:  rgba(10, 7, 19, 0.5);
+  --scrollbar-thumb:  rgba(225, 29, 72, 0.4);
+
+  --radius-xl:    20px;
+  --radius-2xl:   28px;
+  --radius-full:  9999px;
+}
+
+/* =============================================
+   LIGHT THEME DESIGN TOKENS (Reference UI Signature)
+   ============================================= */
+[data-theme="light"] {
+  --bg-deep:       #FFF6EA;
+  --bg-surface:    #FFFFFF;
+  --bg-sidebar:    linear-gradient(180deg, #FFFFFF 0%, #FFF7EC 100%);
+  --bg-header:     rgba(255, 252, 247, 0.96);
+  --bg-player:     rgba(255, 250, 242, 0.98);
+  --bg-main-from:  #FFF3DF;
+  --bg-main-to:    #FFE8F0;
+  --bg-app:        radial-gradient(circle at 20% 0%, #FFE4B5 0%, #FFF3DF 45%, #FFEAF2 100%);
+
+  --bg-card:        rgba(255, 255, 255, 0.95);
+  --bg-card-hover:  #FFFBEB;
+
+  /* Text — Deep Indigo/Navy for Maximum Contrast */
+  --text-primary:    #1E1B4B;
+  --text-secondary:  #334155;
+  --text-tertiary:   #475569;
+
+  /* Borders — Warm Soft Yellow/Gold Tint */
+  --border-glass:   rgba(217, 119, 6, 0.28);
+  --border-subtle:  rgba(217, 119, 6, 0.16);
+  --border-gold:    rgba(217, 119, 6, 0.48);
+
+  --range-track:    #FDE68A;
+  --range-thumb:    #D97706;
+}
+
+/* =============================================
+   SACRED SAFFRON THEME (Vedic Marigold & Terracotta)
+   ============================================= */
+[data-theme="saffron"] {
+  --bg-deep:       #160803;
+  --bg-surface:    #250F06;
+  --bg-sidebar:    rgba(22, 8, 3, 0.97);
+  --bg-header:     rgba(34, 13, 5, 0.93);
+  --bg-player:     rgba(28, 11, 4, 0.96);
+  --bg-main-from:  #3A1405;
+  --bg-main-to:    #160803;
+  --bg-app:        radial-gradient(circle at 50% 0%, #5C2008 0%, #160803 80%);
+
+  --bg-card:        rgba(255, 153, 51, 0.08);
+  --bg-card-hover:  rgba(255, 153, 51, 0.14);
+
+  --text-primary:    #FFF7ED;
+  --text-secondary:  #FDBA74;
+  --text-tertiary:   #FB923C;
+
+  --accent-gold:        #FF9933;
+  --accent-gold-bright: #FBBF24;
+  --accent-crimson:     #EA580C;
+  --accent-ruby:        #C2410C;
+  --accent-rose:        #F97316;
+
+  --border-glass:   rgba(255, 153, 51, 0.22);
+  --border-gold:    rgba(255, 153, 51, 0.45);
+  --border-rose:    rgba(234, 88, 12, 0.40);
+  --border-subtle:  rgba(255, 153, 51, 0.12);
+
+  --range-track:    rgba(255, 153, 51, 0.20);
+  --range-thumb:    #FF9933;
+}
+
+/* =============================================
+   VRINDAVAN EMERALD THEME (Peacock Teal & Flute Gold)
+   ============================================= */
+[data-theme="vrindavan"] {
+  --bg-deep:       #031311;
+  --bg-surface:    #06231E;
+  --bg-sidebar:    rgba(3, 19, 17, 0.97);
+  --bg-header:     rgba(6, 33, 28, 0.93);
+  --bg-player:     rgba(4, 24, 21, 0.96);
+  --bg-main-from:  #083830;
+  --bg-main-to:    #031311;
+  --bg-app:        radial-gradient(circle at 50% 0%, #0D4F43 0%, #031311 80%);
+
+  --bg-card:        rgba(16, 185, 129, 0.08);
+  --bg-card-hover:  rgba(16, 185, 129, 0.14);
+
+  --text-primary:    #ECFDF5;
+  --text-secondary:  #6EE7B7;
+  --text-tertiary:   #34D399;
+
+  --accent-gold:        #FBBF24;
+  --accent-gold-bright: #FDE047;
+  --accent-crimson:     #10B981;
+  --accent-ruby:        #059669;
+  --accent-rose:        #14B8A6;
+
+  --border-glass:   rgba(16, 185, 129, 0.22);
+  --border-gold:    rgba(251, 191, 36, 0.40);
+  --border-rose:    rgba(16, 185, 129, 0.40);
+  --border-subtle:  rgba(16, 185, 129, 0.12);
+
+  --range-track:    rgba(16, 185, 129, 0.20);
+  --range-thumb:    #10B981;
+}
+
+/* =============================================
+   KAILASH SAPPHIRE THEME (Himalayan Blue & Silver Cyan)
+   ============================================= */
+[data-theme="kailash"] {
+  --bg-deep:       #040B16;
+  --bg-surface:    #0A162B;
+  --bg-sidebar:    rgba(4, 11, 22, 0.97);
+  --bg-header:     rgba(9, 20, 38, 0.93);
+  --bg-player:     rgba(7, 15, 30, 0.96);
+  --bg-main-from:  #0F2547;
+  --bg-main-to:    #040B16;
+  --bg-app:        radial-gradient(circle at 50% 0%, #17386B 0%, #040B16 80%);
+
+  --bg-card:        rgba(56, 189, 248, 0.07);
+  --bg-card-hover:  rgba(56, 189, 248, 0.13);
+
+  --text-primary:    #F0F9FF;
+  --text-secondary:  #7DD3FC;
+  --text-tertiary:   #38BDF8;
+
+  --accent-gold:        #38BDF8;
+  --accent-gold-bright: #7DD3FC;
+  --accent-crimson:     #6366F1;
+  --accent-ruby:        #4F46E5;
+  --accent-rose:        #0EA5E9;
+
+  --border-glass:   rgba(56, 189, 248, 0.22);
+  --border-gold:    rgba(56, 189, 248, 0.40);
+  --border-rose:    rgba(99, 102, 241, 0.40);
+  --border-subtle:  rgba(56, 189, 248, 0.12);
+
+  --range-track:    rgba(56, 189, 248, 0.20);
+  --range-thumb:    #38BDF8;
+}
+
+/* =============================================
+   LOTUS ROSE BLISS THEME (Mahalakshmi Rose & Pearl Light)
+   ============================================= */
+[data-theme="lotus"] {
+  --bg-deep:       #FFEAF1;
+  --bg-surface:    #FFFFFF;
+  --bg-sidebar:    linear-gradient(180deg, #FFFFFF 0%, #FFF0F5 100%);
+  --bg-header:     rgba(255, 245, 248, 0.96);
+  --bg-player:     rgba(255, 245, 249, 0.98);
+  --bg-main-from:  #FFE4EE;
+  --bg-main-to:    #FFF0D9;
+  --bg-app:        radial-gradient(circle at 20% 0%, #FFD1E3 0%, #FFEAF2 50%, #FFF2DE 100%);
+
+  --bg-card:        rgba(255, 255, 255, 0.95);
+  --bg-card-hover:  #FFF0F5;
+
+  --text-primary:    #3B0722;
+  --text-secondary:  #5B1037;
+  --text-tertiary:   #7A1F4E;
+
+  --accent-gold:        #E11D48;
+  --accent-gold-bright: #F43F5E;
+  --accent-crimson:     #DB2777;
+  --accent-ruby:        #BE185D;
+  --accent-rose:        #F43F5E;
+
+  --border-glass:   rgba(225, 29, 72, 0.28);
+  --border-subtle:  rgba(225, 29, 72, 0.16);
+  --border-gold:    rgba(225, 29, 72, 0.45);
+
+  --range-track:    #FECDD3;
+  --range-thumb:    #E11D48;
+}
+
+/* =============================================
+   GLOBAL RESET & BASE
+   ============================================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body,
+.sidebar-area,
+.header-area,
+.player-area,
+.main-area,
+.app-container,
+.glass-panel,
+.mobile-nav {
+  transition: background 0.35s ease, background-color 0.35s ease,
+              color 0.35s ease, border-color 0.35s ease,
+              box-shadow 0.35s ease;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: 0.01em;
+}
+
+/* =============================================
+   SCROLLBAR
+   ============================================= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold);
+}
+
+/* =============================================
+   3D CARDS & GLASSMORPHISM PANELS
+   ============================================= */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  box-shadow: 
+    0 10px 25px -4px rgba(217, 119, 6, 0.08),
+    0 4px 10px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-3d {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  box-shadow: 
+    0 12px 28px -4px rgba(217, 119, 6, 0.10),
+    0 4px 10px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-3d:hover,
+.glass-panel-hover:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(225, 29, 72, 0.4);
+  box-shadow: 
+    0 18px 36px -6px rgba(225, 29, 72, 0.18),
+    0 0 20px rgba(245, 158, 11, 0.15);
+}
+
+/* Light mode specific card hover */
+[data-theme="light"] .glass-panel,
+[data-theme="lotus"] .glass-panel {
+  background: #FFFFFF !important;
+  border-color: var(--border-glass) !important;
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.06) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .glass-panel-hover:hover,
+[data-theme="light"] .card-3d:hover,
+[data-theme="lotus"] .glass-panel-hover:hover,
+[data-theme="lotus"] .card-3d:hover {
+  background-color: var(--bg-card-hover) !important;
+  border-color: #E11D48 !important;
+  box-shadow: 0 10px 30px rgba(225, 29, 72, 0.12), 0 0 15px rgba(245, 158, 11, 0.15) !important;
+}
+
+/* =============================================
+   3D TACTILE & GRADIENT BUTTONS
+   ============================================= */
+
+/* Primary Crimson Red Button (Play Now, Get Started) */
+.btn-primary,
+.btn-crimson {
+  background: linear-gradient(135deg, var(--accent-crimson) 0%, var(--accent-ruby) 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 800;
+  padding: 12px 26px;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 
+    0 4px 14px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.btn-primary:hover,
+.btn-crimson:hover {
+  background: linear-gradient(135deg, var(--accent-rose) 0%, var(--accent-crimson) 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 22px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+
+.btn-primary:active,
+.btn-crimson:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Solar Yellow Pill Button (Songs, All, Chat, Play All) */
+.pill-solar-yellow,
+.btn-solar-yellow {
+  background: linear-gradient(180deg, var(--accent-gold-bright) 0%, var(--accent-gold) 100%) !important;
+  color: #1E1B4B !important;
+  font-weight: 800;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--accent-gold-bright);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
+}
+
+[data-theme="lotus"] .pill-solar-yellow,
+[data-theme="lotus"] .btn-solar-yellow {
+  color: #FFFFFF !important;
+}
+
+.pill-solar-yellow:hover,
+.btn-solar-yellow:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 6px 16px rgba(0, 0, 0, 0.25),
+    inset 0 1px 2px rgba(255, 255, 255, 1);
+}
+
+/* Big Circular Play Button (Crimson Aura) */
+.btn-play-crimson {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-crimson) 0%, var(--accent-ruby) 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-play-crimson:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 
+    0 10px 28px rgba(225, 29, 72, 0.65),
+    inset 0 2px 4px rgba(255, 255, 255, 0.7);
+}
+
+/* =============================================
+   LAYOUT GRID
+   ============================================= */
+.app-container {
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  grid-template-rows: 72px 1fr 90px;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar main"
+    "player  player";
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--bg-app);
+}
+
+.sidebar-area {
+  grid-area: sidebar;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-glass);
+}
+
+.header-area {
+  grid-area: header;
+  height: 100%;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.main-area {
+  grid-area: main;
+  height: 100%;
+  overflow-y: auto;
+  background: linear-gradient(to bottom, var(--bg-main-from), var(--bg-main-to));
+}
+
+.player-area {
+  grid-area: player;
+  height: 100%;
+  background: var(--bg-player);
+  border-top: 1px solid var(--border-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.mobile-nav {
+  background: var(--bg-sidebar);
+  border-top: 1px solid var(--border-glass);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* =============================================
+   LIGHT THEME OVERRIDES
+   ============================================= */
+[data-theme="light"] .text-white,
+[data-theme="lotus"] .text-white {
+  color: var(--text-primary) !important;
+}
+
+/* Preserve white text on dark/image overlay cards and colored buttons */
+[data-theme="light"] .hero-banner-card .text-white,
+[data-theme="lotus"] .hero-banner-card .text-white,
+[data-theme="light"] .collection-tile-overlay .text-white,
+[data-theme="lotus"] .collection-tile-overlay .text-white {
+  color: #FFFFFF !important;
+}
+
+[data-theme="light"] .hero-banner-card .text-slate-300,
+[data-theme="lotus"] .hero-banner-card .text-slate-300,
+[data-theme="light"] .collection-tile-overlay .text-slate-300,
+[data-theme="lotus"] .collection-tile-overlay .text-slate-300 {
+  color: #F1F5F9 !important;
+}
+
+[data-theme="light"] .hero-banner-card .text-amber-300,
+[data-theme="lotus"] .hero-banner-card .text-amber-300 {
+  color: #FDE047 !important;
+}
+
+[data-theme="light"] .text-slate-200,
+[data-theme="light"] .text-slate-300,
+[data-theme="light"] .text-slate-400,
+[data-theme="lotus"] .text-slate-200,
+[data-theme="lotus"] .text-slate-300,
+[data-theme="lotus"] .text-slate-400 {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="light"] .text-slate-500,
+[data-theme="light"] .text-slate-600,
+[data-theme="lotus"] .text-slate-500,
+[data-theme="lotus"] .text-slate-600 {
+  color: var(--text-tertiary) !important;
+}
+
+/* High-contrast semantic accent text for Light & Lotus themes */
+[data-theme="light"] .text-amber-200,
+[data-theme="light"] .text-amber-300,
+[data-theme="light"] .text-amber-400,
+[data-theme="light"] .text-amber-200\/80 {
+  color: #B45309 !important;
+}
+
+[data-theme="lotus"] .text-amber-200,
+[data-theme="lotus"] .text-amber-300,
+[data-theme="lotus"] .text-amber-400,
+[data-theme="lotus"] .text-amber-200\/80 {
+  color: #BE123C !important;
+}
+
+[data-theme="light"] .text-emerald-300,
+[data-theme="light"] .text-emerald-400,
+[data-theme="lotus"] .text-emerald-300,
+[data-theme="lotus"] .text-emerald-400 {
+  color: #047857 !important;
+}
+
+[data-theme="light"] .text-rose-300,
+[data-theme="light"] .text-rose-400,
+[data-theme="lotus"] .text-rose-300,
+[data-theme="lotus"] .text-rose-400 {
+  color: #BE123C !important;
+}
+
+[data-theme="light"] .text-purple-300,
+[data-theme="light"] .text-purple-400,
+[data-theme="lotus"] .text-purple-300,
+[data-theme="lotus"] .text-purple-400 {
+  color: #6D28D9 !important;
+}
+
+[data-theme="light"] .text-cyan-300,
+[data-theme="light"] .text-cyan-400,
+[data-theme="lotus"] .text-cyan-300,
+[data-theme="lotus"] .text-cyan-400 {
+  color: #0369A1 !important;
+}
+
+[data-theme="light"] .text-blue-300,
+[data-theme="light"] .text-blue-400,
+[data-theme="lotus"] .text-blue-300,
+[data-theme="lotus"] .text-blue-400 {
+  color: #1D4ED8 !important;
+}
+
+[data-theme="light"] .text-orange-400,
+[data-theme="lotus"] .text-orange-400 {
+  color: #C2410C !important;
+}
+
+/* Readable progress bar tracks & code blocks in Light / Lotus themes */
+[data-theme="light"] .bg-slate-950,
+[data-theme="light"] .bg-slate-950\/60,
+[data-theme="light"] .bg-slate-800 {
+  background-color: #FDE68A !important;
+}
+
+[data-theme="lotus"] .bg-slate-950,
+[data-theme="lotus"] .bg-slate-950\/60,
+[data-theme="lotus"] .bg-slate-800 {
+  background-color: #FECDD3 !important;
+}
+
+/* Keep white text on colored/dark action elements & auth modal */
+[data-theme="light"] .bg-rose-500,
+[data-theme="light"] .bg-rose-600,
+[data-theme="light"] .bg-red-500,
+[data-theme="light"] .bg-red-600,
+[data-theme="light"] .bg-blue-600,
+[data-theme="light"] .bg-emerald-600,
+[data-theme="light"] .bg-purple-600,
+[data-theme="light"] .bg-amber-500,
+[data-theme="light"] .bg-black,
+[data-theme="light"] .btn-primary,
+[data-theme="light"] .btn-crimson,
+[data-theme="light"] .btn-play-crimson,
+[data-theme="light"] .auth-modal-root .text-white,
+[data-theme="lotus"] .bg-rose-500,
+[data-theme="lotus"] .bg-rose-600,
+[data-theme="lotus"] .bg-red-500,
+[data-theme="lotus"] .bg-red-600,
+[data-theme="lotus"] .bg-blue-600,
+[data-theme="lotus"] .bg-emerald-600,
+[data-theme="lotus"] .bg-purple-600,
+[data-theme="lotus"] .bg-amber-500,
+[data-theme="lotus"] .bg-black,
+[data-theme="lotus"] .btn-primary,
+[data-theme="lotus"] .btn-crimson,
+[data-theme="lotus"] .btn-play-crimson,
+[data-theme="lotus"] .auth-modal-root .text-white {
+  color: #FFFFFF !important;
+}
+
+/* Amber/Yellow text and borders adapt to active theme scheme */
+.text-amber-300,
+.text-amber-400 {
+  color: var(--accent-gold-bright) !important;
+}
+
+.border-amber-500\/20,
+.border-amber-500\/30,
+.border-amber-500\/40 {
+  border-color: var(--border-gold) !important;
+}
+
+/* Active track row in track lists */
+.active-song-row {
+  background: var(--bg-card-hover) !important;
+  border-left: 4px solid var(--accent-crimson) !important;
+}
+
+/* Form inputs in light mode */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea,
+[data-theme="lotus"] input,
+[data-theme="lotus"] select,
+[data-theme="lotus"] textarea {
+  background-color: #FFFFFF !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-glass) !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder,
+[data-theme="lotus"] input::placeholder,
+[data-theme="lotus"] textarea::placeholder {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .bg-white\/5,
+[data-theme="light"] .bg-white\/\[0\.03\] {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+}
+
+[data-theme="lotus"] .bg-white\/5,
+[data-theme="lotus"] .bg-white\/\[0\.03\] {
+  background-color: rgba(225, 29, 72, 0.07) !important;
+}
+
+[data-theme="light"] .bg-white\/10 {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+}
+
+[data-theme="lotus"] .bg-white\/10 {
+  background-color: rgba(225, 29, 72, 0.12) !important;
+}
+
+[data-theme="light"] .border-white\/10,
+[data-theme="light"] .border-white\/5,
+[data-theme="lotus"] .border-white\/10,
+[data-theme="lotus"] .border-white\/5 {
+  border-color: var(--border-glass) !important;
+}
+
+/* Interactive Equalizer Bars */
+@keyframes eq-bar-1 {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+@keyframes eq-bar-2 {
+  0%, 100% { height: 14px; }
+  30% { height: 5px; }
+  70% { height: 18px; }
+}
+@keyframes eq-bar-3 {
+  0%, 100% { height: 8px; }
+  40% { height: 17px; }
+  80% { height: 4px; }
+}
+.eq-bar-1 { animation: eq-bar-1 0.8s ease-in-out infinite; }
+.eq-bar-2 { animation: eq-bar-2 0.7s ease-in-out infinite; }
+.eq-bar-3 { animation: eq-bar-3 0.9s ease-in-out infinite; }
+
+/* =============================================
+   KEYFRAME ANIMATIONS
+   ============================================= */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin-slow { animation: spin-slow 22s linear infinite; }
+
+@keyframes pulse-aura {
+  0%, 100% { transform: scale(1);    opacity: 0.35; }
+  50%       { transform: scale(1.15); opacity: 0.75; }
+}
+.animate-pulse-aura { animation: pulse-aura 4s ease-in-out infinite; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn { animation: fadeIn 0.35s ease-out; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slideUp { animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+
+@keyframes theme-icon-flip {
+  0%   { transform: rotate(0deg) scale(1); }
+  40%  { transform: rotate(90deg) scale(0.65); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.animate-theme-flip { animation: theme-icon-flip 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* =============================================
+   RESPONSIVE — MOBILE
+   ============================================= */
+@media (max-width: 768px) {
+  .app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  .sidebar-area {
+    display: none !important;
+  }
+
+  .header-area {
+    height: 64px;
+    flex-shrink: 0;
+  }
+
+  .main-area {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 140px !important;
+  }
+
+  .player-area {
+    position: fixed;
+    bottom: 64px;
+    left: 0;
+    right: 0;
+    z-index: 30;
+  }
+}

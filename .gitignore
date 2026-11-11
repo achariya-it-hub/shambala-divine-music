@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build & Release Archives
+dist/
+*.zip
+playstore_assets/releases/
+Meditation Music/
+
+# Duplicate MP3 files in public/
+public/1 Mahalakshmi Tapas.mp3
+public/10.Ganesha Tapas.mp3
+public/100 Ganesh Tapas.mp3
+
+# Flutter build artifacts
+shambala_flutter/build/
+shambala_flutter/.dart_tool/
+shambala_flutter/.flutter-plugins
+shambala_flutter/.flutter-plugins-dependencies
+shambala_flutter/android/.gradle/
+shambala_flutter/android/key.properties
+shambala_flutter/android/app/*.jks
+shambala_flutter/ios/Pods/
+shambala_flutter/ios/.symlinks/
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+
+# Logs & OS files
+*.log
+.DS_Store
+Thumbs.db
