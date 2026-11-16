@@ -92,7 +92,7 @@ class _LiveStreamScreenState extends State<LiveStreamScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '24/7 Live Satsang',
+                        'Live',
                         style: GoogleFonts.lexendDeca(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,

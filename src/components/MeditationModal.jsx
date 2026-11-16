@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useMusic } from '../context/MusicContext';
 import { X, Sparkles, Volume2, VolumeX, Play, Pause } from 'lucide-react';
 
@@ -15,6 +15,12 @@ export const MeditationModal = () => {
     isMuted,
     setIsMuted
   } = useMusic();
+
+  useEffect(() => {
+    if (isMeditationActive && activeMeditationTrack && !isMeditationAudioPlaying) {
+      toggleMeditationPlay();
+    }
+  }, [isMeditationActive, activeMeditationTrack]);
 
   if (!isMeditationActive || !activeMeditationTrack) return null;
 

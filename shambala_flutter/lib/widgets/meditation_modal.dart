@@ -5,8 +5,23 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../providers/music_provider.dart';
 
-class MeditationModalWidget extends StatelessWidget {
+class MeditationModalWidget extends StatefulWidget {
   const MeditationModalWidget({super.key});
+
+  @override
+  State<MeditationModalWidget> createState() => _MeditationModalWidgetState();
+}
+
+class _MeditationModalWidgetState extends State<MeditationModalWidget> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final provider = Provider.of<MusicProvider>(context, listen: false);
+      provider.ensureMeditationAudioPlaying();
+    });
+  }
 
   String _formatTime(int totalSeconds) {
     final m = (totalSeconds ~/ 60).toString().padLeft(2, '0');

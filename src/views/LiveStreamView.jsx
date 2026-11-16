@@ -60,8 +60,8 @@ export const LiveStreamView = () => {
     id: liveFeed.id,
     title: activeEvent?.title || liveFeed.title,
     artist: liveFeed.broadcaster,
-    album: '24/7 Live Satsang Stream',
-    category: 'Live Broadcast',
+    album: 'Live',
+    category: 'Live',
     duration: 'LIVE',
     durationSec: 99999,
     cover: activeEvent?.cover || liveFeed.cover,
@@ -131,19 +131,19 @@ export const LiveStreamView = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-heading font-extrabold text-xl md:text-2xl text-white">
-                Live Spiritual Events & Darshan
+                Live
               </h1>
               <span className="px-2.5 py-0.5 rounded-full bg-rose-600 text-white font-extrabold text-[10px] tracking-wider uppercase shadow animate-pulse">
                 🔴 LIVE
               </span>
             </div>
             <p className="text-xs text-slate-400 font-medium">
-              Watch live Temple Aarti, Homa ceremonies, Satsangs & global meditation broadcasts
+              Watch live Temple Aarti, Homa ceremonies & global spiritual broadcasts
             </p>
           </div>
         </div>
 
-        {/* Mode Toggle: Live Video vs Audio Only */}
+        {/* Mode Toggle: Live vs Audio Only */}
         <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/10 border border-amber-500/30 self-start sm:self-auto">
           <button
             onClick={() => setStreamMode('video')}
@@ -154,7 +154,7 @@ export const LiveStreamView = () => {
             }`}
           >
             <Video className="w-3.5 h-3.5" />
-            <span>Live Video</span>
+            <span>Live</span>
           </button>
           <button
             onClick={() => setStreamMode('audio')}
@@ -342,7 +342,7 @@ export const LiveStreamView = () => {
               : 'bg-white/10 text-slate-300 border border-amber-500/25 hover:bg-white/15'
           }`}
         >
-          💬 Live Satsang Chat ({liveFeed.chatMessages.length})
+          💬 Live Chat ({liveFeed.chatMessages.length})
         </button>
         <button
           onClick={() => setActiveTab('schedule')}

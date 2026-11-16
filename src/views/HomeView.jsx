@@ -83,9 +83,9 @@ export const HomeView = () => {
     },
     {
       id: 2,
-      badge: '24/7 LIVE SATSANG',
-      title: 'Global Chanting Stream',
-      subtitle: 'Join 1.2K+ seekers tuned in live for continuous Satsang & Vedic talks.',
+      badge: 'LIVE',
+      title: 'Live',
+      subtitle: 'Join 1.2K+ seekers tuned in live for spiritual events & broadcasts.',
       cover: liveFeed.cover,
       actionText: 'Tune In Live',
       onAction: () => setCurrentView('live')

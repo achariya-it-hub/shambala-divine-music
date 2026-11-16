@@ -39,6 +39,8 @@ export const ProfileView = () => {
     showToast,
     userProfile,
     setShowAuthModal,
+    isDailyMeditationScheduled,
+    toggleDailyMeditationSchedule,
     signInWithGoogle,
     signInWithEmail,
     signInWithApple,
@@ -572,12 +574,12 @@ export const ProfileView = () => {
         <div className="p-4 flex items-center justify-between hover:bg-white/5 transition-all">
           <div className="flex items-center gap-3">
             <Bell className="w-5 h-5 text-amber-400" />
-            <span className="font-bold text-sm text-white">Notifications</span>
+            <span className="font-bold text-sm text-white">12:00 PM Noon Meditation</span>
           </div>
           <button
-            onClick={handleToggleNotifications}
+            onClick={toggleDailyMeditationSchedule}
             className={`w-12 h-6 rounded-full p-1 transition-colors flex items-center cursor-pointer ${
-              notificationsEnabled ? 'bg-amber-400 justify-end' : 'bg-slate-700 justify-start'
+              isDailyMeditationScheduled ? 'bg-amber-400 justify-end' : 'bg-slate-700 justify-start'
             }`}
           >
             <div className="w-4 h-4 rounded-full bg-slate-950 shadow-md" />

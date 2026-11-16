@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../providers/music_provider.dart';
+import '../widgets/meditation_modal.dart';
 
 class MeditationScheduleScreen extends StatelessWidget {
   const MeditationScheduleScreen({super.key});
@@ -38,7 +39,9 @@ class MeditationScheduleScreen extends StatelessWidget {
 
     final currentWeekday = DateTime.now().weekday; // 1 = Monday, 7 = Sunday
 
-    return Scaffold(
+    return Stack(
+      children: [
+        Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -169,6 +172,29 @@ class MeditationScheduleScreen extends StatelessWidget {
                       fontSize: 12,
                       color: Colors.white70,
                       height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: crimsonColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      ),
+                      icon: const Icon(LucideIcons.play, size: 16),
+                      label: Text(
+                        'Start 12:00 PM Meditation Now',
+                        style: GoogleFonts.lexendDeca(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      onPressed: () {
+                        provider.triggerMeditationSimulation(currentWeekday);
+                      },
                     ),
                   ),
                 ],
@@ -352,6 +378,9 @@ class MeditationScheduleScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+    if (provider.isMeditationActive) const MeditationModalWidget(),
+  ],
+);
   }
 }

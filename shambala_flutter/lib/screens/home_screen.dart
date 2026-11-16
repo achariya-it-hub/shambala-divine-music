@@ -93,9 +93,9 @@ class _HomeScreenState extends State<HomeScreen> {
         'onTap': () => provider.triggerMeditationSimulation(now.weekday),
       },
       {
-        'badge': '🔴 LIVE BROADCAST',
-        'title': '24/7 Global Satsang',
-        'subtitle': 'Tune in live with 1,200+\nseekers worldwide.',
+        'badge': '🔴 LIVE',
+        'title': 'Live',
+        'subtitle': 'Watch live spiritual events with\n1,200+ seekers worldwide.',
         'cover': provider.liveFeed.coverUrl,
         'actionText': 'Tune In Live',
         'onTap': () {

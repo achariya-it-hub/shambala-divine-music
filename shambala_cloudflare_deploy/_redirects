@@ -1,0 +1,4 @@
+# SPA fallback so /admin, /profile, /live, /podcasts, /offline work directly on Cloudflare Pages & Netlify
+/privacy /privacy.html 200
+/* /index.html 200
+

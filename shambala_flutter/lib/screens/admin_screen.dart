@@ -152,7 +152,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('24/7 Live Broadcast', style: GoogleFonts.lexendDeca(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
+                    Text('Live', style: GoogleFonts.lexendDeca(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
                     Text(provider.liveFeed.isLive ? '🔴 LIVE BROADCASTING' : '⚪ OFFLINE', style: TextStyle(color: subtitleColor, fontSize: 12)),
                   ],
                 ),

@@ -27,7 +27,7 @@ export const Sidebar = () => {
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'podcasts', label: 'Podcasts', icon: Podcast },
-    { id: 'live', label: 'Live Satsang', icon: Radio, badge: 'LIVE', badgeColor: 'bg-rose-500' },
+    { id: 'live', label: 'Live', icon: Radio, badge: 'LIVE', badgeColor: 'bg-rose-500' },
     { 
       id: 'offline', 
       label: 'Downloads', 

@@ -8,6 +8,7 @@ import 'providers/music_provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/admin_screen.dart';
+import 'widgets/meditation_modal.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -82,6 +83,17 @@ class ShambalaDivineApp extends StatelessWidget {
                     ),
                     body: const AdminScreen(),
                   ),
+            },
+            builder: (context, navChild) {
+              return Stack(
+                children: [
+                  if (navChild != null) navChild,
+                  if (provider.isMeditationActive)
+                    const Positioned.fill(
+                      child: MeditationModalWidget(),
+                    ),
+                ],
+              );
             },
             home: const SplashScreen(),
           );

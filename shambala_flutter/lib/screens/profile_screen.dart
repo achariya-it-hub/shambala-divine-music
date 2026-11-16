@@ -1046,11 +1046,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   );
                 }),
 
-                // Notifications Switch
+                // 12:00 PM Meditation & Notifications Switch
                 ListTile(
                   leading: Icon(LucideIcons.bell, color: textColor, size: 20),
                   title: Text(
-                    'Notifications',
+                    '12:00 PM Daily Meditation',
                     style: GoogleFonts.lexendDeca(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -1058,18 +1058,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   trailing: Switch(
-                    value: _notificationsEnabled,
+                    value: musicProvider.isDailyMeditationScheduled,
                     activeThumbColor: Colors.white,
                     activeTrackColor: const Color(0xFFF59E0B),
                     onChanged: (val) {
                       setState(() => _notificationsEnabled = val);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(val ? '12:00 PM Notifications Enabled 🔔' : 'Notifications Muted 🔕', style: GoogleFonts.lexendDeca(color: Colors.white)),
-                          backgroundColor: amberColor,
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
+                      musicProvider.toggleDailyMeditationSchedule();
                     },
                   ),
                 ),

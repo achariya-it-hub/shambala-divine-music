@@ -47,7 +47,13 @@ export const MusicProvider = ({ children }) => {
     if (!saved) return DAILY_MEDITATION_SCHEDULE;
     try {
       const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed) || parsed.length < 7) return DAILY_MEDITATION_SCHEDULE;
+      if (
+        !Array.isArray(parsed) ||
+        parsed.length < 7 ||
+        !parsed.every((m) => m.audioUrl && m.audioUrl.includes('meditation_'))
+      ) {
+        return DAILY_MEDITATION_SCHEDULE;
+      }
       return parsed;
     } catch (e) {
       return DAILY_MEDITATION_SCHEDULE;
@@ -410,7 +416,21 @@ export const MusicProvider = ({ children }) => {
     const nextState = !isDailyMeditationScheduled;
     setIsDailyMeditationScheduled(nextState);
     localStorage.setItem('shambala_daily_meditation_scheduled', nextState.toString());
-    showToast(nextState ? '📅 Daily 12:00 PM Meditation Scheduled!' : '📅 Daily Meditation Unscheduled.');
+    if (nextState) {
+      const now = new Date();
+      if (now.getHours() === 12 && now.getMinutes() >= 0 && now.getMinutes() < 6) {
+        const todayIdx = now.getDay() === 0 ? 7 : now.getDay();
+        triggerMeditationSimulation(todayIdx);
+      } else {
+        showToast('📅 12:00 PM Meditation Enabled — Will auto-open & play at 12:00 PM sharp!');
+      }
+    } else {
+      if (isMeditationActive && !isMeditationSimulated) {
+        stopMeditation();
+      } else {
+        showToast('📅 Daily 12:00 PM Meditation Unscheduled.');
+      }
+    }
   };
 
   // Notifications Toast
@@ -633,6 +653,45 @@ export const MusicProvider = ({ children }) => {
     };
   }, []);
 
+  // Pre-unlock meditation audio element on first user interaction so 12:00 PM timer can auto-play without browser restriction
+  const meditationAudioUnlockedRef = useRef(false);
+  useEffect(() => {
+    const unlockMeditationAudio = () => {
+      if (meditationAudioUnlockedRef.current) return;
+      const medAudio = meditationAudioRef.current;
+      if (medAudio && !isMeditationActive) {
+        const dayOfWeek = new Date().getDay();
+        const targetDayIdx = dayOfWeek === 0 ? 7 : dayOfWeek;
+        const todaysMeditation =
+          meditationSchedule.find((m) => m.dayIndex === targetDayIdx) || meditationSchedule[0];
+        if (todaysMeditation?.audioUrl && !medAudio.src) {
+          medAudio.src = todaysMeditation.audioUrl;
+        }
+        const prevMuted = medAudio.muted;
+        medAudio.muted = true;
+        const p = medAudio.play();
+        if (p !== undefined) {
+          p.then(() => {
+            if (!isMeditationActive) {
+              medAudio.pause();
+              medAudio.currentTime = 0;
+            }
+            medAudio.muted = prevMuted;
+            meditationAudioUnlockedRef.current = true;
+          }).catch(() => {
+            medAudio.muted = prevMuted;
+          });
+        }
+      }
+    };
+    window.addEventListener('pointerdown', unlockMeditationAudio, { passive: true });
+    window.addEventListener('keydown', unlockMeditationAudio, { passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlockMeditationAudio);
+      window.removeEventListener('keydown', unlockMeditationAudio);
+    };
+  }, [isMeditationActive, meditationSchedule]);
+
   // Sharp 12:00 PM - 12:06 PM Automated Meditation Timer Engine
   useEffect(() => {
     const checkNoonTimer = () => {
@@ -661,15 +720,16 @@ export const MusicProvider = ({ children }) => {
         if (medAudio) {
           medAudio.src = todaysMeditation.audioUrl;
           medAudio.loop = true;
+          medAudio.muted = isMuted;
           medAudio.volume = isMuted ? 0 : volume;
           const playPromise = medAudio.play();
           if (playPromise !== undefined) {
             playPromise
               .then(() => setIsMeditationAudioPlaying(true))
               .catch((err) => {
-                console.warn('Autoplay blocked for meditation audio, user gesture needed:', err);
-                setIsMeditationAudioPlaying(false);
+                console.warn('Autoplay fallback to WebAudio synth:', err);
                 audioSynth.playDivineSoundscape(todaysMeditation.synthType || 'om_528');
+                setIsMeditationAudioPlaying(true);
               });
           }
         }
@@ -687,8 +747,15 @@ export const MusicProvider = ({ children }) => {
       }
     };
 
+    checkNoonTimer();
     const interval = setInterval(checkNoonTimer, 1000);
-    return () => clearInterval(interval);
+    window.addEventListener('visibilitychange', checkNoonTimer);
+    window.addEventListener('focus', checkNoonTimer);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('visibilitychange', checkNoonTimer);
+      window.removeEventListener('focus', checkNoonTimer);
+    };
   }, [isDailyMeditationScheduled, isMeditationActive, isMeditationSimulated, meditationSchedule, isMuted, volume]);
 
   // Meditation Countdown Tick

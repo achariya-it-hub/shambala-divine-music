@@ -18,7 +18,7 @@ import '../data/initial_data.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
-class MusicProvider extends ChangeNotifier {
+class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
   // Datasets
   List<Song> songs = List.from(initialSongs);
   List<PodcastShow> podcasts = List.from(initialPodcasts);
@@ -191,6 +191,8 @@ class MusicProvider extends ChangeNotifier {
 
   // Automated 12:00 PM - 12:06 PM Meditation Engine
   bool isMeditationActive = false;
+  bool isMeditationSimulated = false;
+  String? _dismissedNoonDate;
   MeditationTrack? activeMeditationTrack;
   int meditationTimeRemaining = 360;
   Timer? _noonTimer;
@@ -199,12 +201,23 @@ class MusicProvider extends ChangeNotifier {
   bool isDailyMeditationScheduled = true;
 
   MusicProvider() {
+    WidgetsBinding.instance.addObserver(this);
     currentTrack = songs.isNotEmpty ? songs.first : null;
     queue = List.from(songs);
     _initAudioListeners();
     _initOfflineCache();
     _startNoonTimer();
     _initNotifications();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkNoonWindow();
+      if (isDailyMeditationScheduled && !kIsWeb) {
+        _scheduleDailyNoonNotification();
+      }
+    }
   }
 
   Future<void> _initNotifications() async {
@@ -214,24 +227,50 @@ class MusicProvider extends ChangeNotifier {
     }
     tz.initializeTimeZones();
     
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings();
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
+    const DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
     const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsDarwin,
     );
     
-    await flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        if (response.payload == 'daily_meditation') {
-          final dayIdx = DateTime.now().weekday;
-          triggerMeditationSimulation(dayIdx);
-        }
-      },
-    );
+    try {
+      await flutterLocalNotificationsPlugin.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          if (response.payload == 'daily_meditation') {
+            final dayIdx = DateTime.now().weekday;
+            triggerMeditationSimulation(dayIdx);
+          }
+        },
+      );
 
-    _initScheduler();
+      final androidPlugin = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin != null) {
+        try {
+          await androidPlugin.requestNotificationsPermission();
+        } catch (_) {}
+        try {
+          await androidPlugin.requestExactAlarmsPermission();
+        } catch (_) {}
+      }
+
+      final launchDetails = await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+      if (launchDetails != null &&
+          launchDetails.didNotificationLaunchApp &&
+          launchDetails.notificationResponse?.payload == 'daily_meditation') {
+        triggerMeditationSimulation(DateTime.now().weekday);
+      }
+    } catch (e) {
+      debugPrint('Notification init notice: $e');
+    }
+
+    await _initScheduler();
   }
 
   Future<void> _initScheduler() async {
@@ -252,53 +291,128 @@ class MusicProvider extends ChangeNotifier {
     }
     
     if (isDailyMeditationScheduled && !kIsWeb) {
-      _scheduleDailyNoonNotification();
+      await _scheduleDailyNoonNotification();
     }
+    await _syncBackgroundKeepAlive();
+    _checkNoonWindow();
     notifyListeners();
   }
 
   Future<void> _scheduleDailyNoonNotification() async {
     if (kIsWeb) return;
-    tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, 12, 0);
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    try {
+      final DateTime localNow = DateTime.now();
+      DateTime localNoon = DateTime(localNow.year, localNow.month, localNow.day, 12, 0, 0);
+      if (!localNoon.isAfter(localNow)) {
+        localNoon = localNoon.add(const Duration(days: 1));
+      }
+      final Duration delayUntilNoon = localNoon.difference(localNow);
+      final tz.TZDateTime scheduledDate = tz.TZDateTime.now(tz.UTC).add(delayUntilNoon);
+
+      const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+        'meditation_noon_alarm_v2',
+        'Daily 12:00 PM Meditation',
+        channelDescription: 'Automatic 12:00 PM Daily Meditation Session',
+        importance: Importance.max,
+        priority: Priority.max,
+        fullScreenIntent: true,
+        category: AndroidNotificationCategory.alarm,
+        visibility: NotificationVisibility.public,
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+        playSound: true,
+        enableVibration: true,
+      );
+      const NotificationDetails platformChannelSpecifics = NotificationDetails(
+        android: androidPlatformChannelSpecifics,
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          interruptionLevel: InterruptionLevel.timeSensitive,
+        ),
+      );
+
+      await flutterLocalNotificationsPlugin.cancel(108);
+      try {
+        await flutterLocalNotificationsPlugin.zonedSchedule(
+          108,
+          '12:00 PM Daily Meditation 🙏',
+          'Today\'s 6-minute divine meditation is starting now.',
+          scheduledDate,
+          platformChannelSpecifics,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          payload: 'daily_meditation',
+        );
+      } catch (_) {
+        // Fallback to inexactAllowWhileIdle if exact alarm permission was not granted by OS
+        await flutterLocalNotificationsPlugin.zonedSchedule(
+          108,
+          '12:00 PM Daily Meditation 🙏',
+          'Today\'s 6-minute divine meditation is starting now.',
+          scheduledDate,
+          platformChannelSpecifics,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          payload: 'daily_meditation',
+        );
+      }
+    } catch (e) {
+      debugPrint('Schedule noon alarm notice: $e');
     }
+  }
 
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'meditation_channel', 
-      'Daily Meditation',
-      channelDescription: 'Daily 12:00 PM Meditation Reminder',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-      iOS: DarwinNotificationDetails(),
-    );
-
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      108,
-      'Time for Daily Meditation 🙏',
-      'Tap here to start today\'s 12:00 PM session.',
-      scheduledDate,
-      platformChannelSpecifics,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-      payload: 'daily_meditation'
-    );
+  /// Keeps the app process alive (media-playback foreground service) so the
+  /// Dart 12:00 PM timer keeps running and meditation audio auto-plays even
+  /// when the app is minimized or the screen is off.
+  Future<void> _syncBackgroundKeepAlive() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+    try {
+      final androidPlugin = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin == null) return;
+      if (isDailyMeditationScheduled) {
+        await androidPlugin.startForegroundService(
+          1080,
+          'Happy Shambala • 12:00 PM Meditation',
+          'Daily meditation will start automatically at 12:00 PM',
+          notificationDetails: const AndroidNotificationDetails(
+            'meditation_keepalive',
+            'Meditation Scheduler',
+            channelDescription: 'Keeps the 12:00 PM meditation ready',
+            importance: Importance.low,
+            priority: Priority.low,
+            ongoing: true,
+            playSound: false,
+            enableVibration: false,
+          ),
+          startType: AndroidServiceStartType.startSticky,
+          foregroundServiceTypes: {AndroidServiceForegroundType.foregroundServiceTypeMediaPlayback},
+        );
+      } else {
+        await androidPlugin.stopForegroundService();
+      }
+    } catch (e) {
+      debugPrint('Keep-alive service notice: $e');
+    }
   }
 
   void toggleDailyMeditationSchedule() async {
     isDailyMeditationScheduled = !isDailyMeditationScheduled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_daily_meditation_scheduled', isDailyMeditationScheduled);
+    await _syncBackgroundKeepAlive();
     
     if (isDailyMeditationScheduled) {
-      if (!kIsWeb) _scheduleDailyNoonNotification();
+      _dismissedNoonDate = null;
+      if (!kIsWeb) await _scheduleDailyNoonNotification();
+      // Check if it is currently 12:00 PM - 12:06 PM; if so, open immediately!
+      _checkNoonWindow();
     } else {
-      if (!kIsWeb) flutterLocalNotificationsPlugin.cancel(108);
+      if (!kIsWeb) await flutterLocalNotificationsPlugin.cancel(108);
+      if (isMeditationActive && !isMeditationSimulated) {
+        stopMeditation();
+      }
     }
     notifyListeners();
   }
@@ -372,42 +486,45 @@ class MusicProvider extends ChangeNotifier {
   }
 
   // Sharp 12:00 PM - 12:06 PM Meditation Engine
-  void _startNoonTimer() {
-    _noonTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final now = DateTime.now();
-      final isNoonWindow = (now.hour == 12 && now.minute >= 0 && now.minute < 6);
+  void _checkNoonWindow() {
+    final now = DateTime.now();
+    final todayKey = '${now.year}-${now.month}-${now.day}';
+    final isNoonWindow = (now.hour == 12 && now.minute >= 0 && now.minute < 6);
 
-      if (isDailyMeditationScheduled && isNoonWindow && !isMeditationActive) {
-        final dayIdx = now.weekday; // 1 = Monday ... 7 = Sunday
-        final track = meditationSchedule.firstWhere(
-          (m) => m.dayIndex == dayIdx,
-          orElse: () => meditationSchedule.first,
-        );
-        
-        activeMeditationTrack = track;
-        isMeditationActive = true;
-        meditationTimeRemaining = (6 * 60) - (now.minute * 60 + now.second);
+    if (isDailyMeditationScheduled &&
+        isNoonWindow &&
+        !isMeditationActive &&
+        !isMeditationSimulated &&
+        _dismissedNoonDate != todayKey) {
+      final dayIdx = now.weekday; // 1 = Monday ... 7 = Sunday
+      final track = meditationSchedule.firstWhere(
+        (m) => m.dayIndex == dayIdx,
+        orElse: () => meditationSchedule.first,
+      );
 
-        // Auto-play day's meditation audio automatically without user intervention!
-        playTrack(Song(
-          id: 'meditation-noon-${track.dayIndex}',
-          title: track.title,
-          artist: '${track.dayName} 12:00 PM Session',
-          album: 'Daily Noon Meditation',
-          category: 'Meditation',
-          duration: '06:00',
-          durationSec: 360,
-          coverUrl: track.coverUrl,
-          audioUrl: track.audioUrl,
-          lyrics: track.mantra,
-          plays: '108',
-        ));
+      activeMeditationTrack = track;
+      isMeditationActive = true;
+      isMeditationSimulated = false;
+      meditationTimeRemaining = (6 * 60) - (now.minute * 60 + now.second);
 
-        _startMeditationCountdown();
-        notifyListeners();
-      } else if (!isNoonWindow && isMeditationActive) {
-        stopMeditation();
+      // Force-play day's meditation audio automatically without toggle interception
+      _playMeditationTrackAudio(track, isSimulated: false);
+
+      _startMeditationCountdown();
+      if (!kIsWeb) {
+        // Schedule tomorrow's 12:00 PM alarm as well
+        Future.delayed(const Duration(seconds: 2), _scheduleDailyNoonNotification);
       }
+      notifyListeners();
+    } else if (!isNoonWindow && isMeditationActive && !isMeditationSimulated) {
+      stopMeditation();
+    }
+  }
+
+  void _startNoonTimer() {
+    _noonTimer?.cancel();
+    _noonTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _checkNoonWindow();
     });
   }
 
@@ -423,18 +540,9 @@ class MusicProvider extends ChangeNotifier {
     });
   }
 
-  void triggerMeditationSimulation(int dayIdx) {
-    final track = meditationSchedule.firstWhere(
-      (m) => m.dayIndex == dayIdx,
-      orElse: () => meditationSchedule.first,
-    );
-    activeMeditationTrack = track;
-    isMeditationActive = true;
-    meditationTimeRemaining = 360;
-
-    // Auto-play simulated meditation audio!
-    playTrack(Song(
-      id: 'meditation-sim-${track.dayIndex}',
+  Future<void> _playMeditationTrackAudio(MeditationTrack track, {required bool isSimulated}) async {
+    final medSong = Song(
+      id: '${isSimulated ? "meditation-sim" : "meditation-noon"}-${track.dayIndex}',
       title: track.title,
       artist: '${track.dayName} 12:00 PM Session',
       album: 'Daily Noon Meditation',
@@ -445,17 +553,81 @@ class MusicProvider extends ChangeNotifier {
       audioUrl: track.audioUrl,
       lyrics: track.mantra,
       plays: '108',
-    ));
+    );
+    currentTrack = medSong;
+    isPlaying = true;
+    notifyListeners();
+
+    Future<void> attemptStart() async {
+      if (!isMeditationActive) return;
+      try {
+        await _audioPlayer.stop();
+        await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+        await _audioPlayer.setVolume(isMuted ? 0 : volume);
+        if (medSong.audioUrl.startsWith('assets/')) {
+          final assetPath = medSong.audioUrl.replaceFirst('assets/', '');
+          await _audioPlayer.play(AssetSource(assetPath));
+        } else {
+          await _audioPlayer.play(UrlSource(medSong.audioUrl));
+        }
+        isPlaying = true;
+        notifyListeners();
+      } catch (e) {
+        debugPrint('Meditation audio start notice: $e');
+      }
+    }
+
+    await attemptStart();
+
+    // Verify & retry after 600ms and 1600ms in case the Activity was waking from background
+    for (final delayMs in [600, 1600]) {
+      Future.delayed(Duration(milliseconds: delayMs), () async {
+        if (isMeditationActive && _audioPlayer.state != PlayerState.playing) {
+          await attemptStart();
+        }
+      });
+    }
+  }
+
+  Future<void> ensureMeditationAudioPlaying() async {
+    if (!isMeditationActive || activeMeditationTrack == null) return;
+    if (_audioPlayer.state != PlayerState.playing) {
+      await _playMeditationTrackAudio(activeMeditationTrack!, isSimulated: isMeditationSimulated);
+    }
+  }
+
+  void triggerMeditationSimulation(int dayIdx) {
+    final track = meditationSchedule.firstWhere(
+      (m) => m.dayIndex == dayIdx,
+      orElse: () => meditationSchedule.first,
+    );
+    activeMeditationTrack = track;
+    isMeditationActive = true;
+    isMeditationSimulated = true;
+    meditationTimeRemaining = 360;
+
+    // Force-play simulated meditation audio without toggle interception!
+    _playMeditationTrackAudio(track, isSimulated: true);
 
     _startMeditationCountdown();
     notifyListeners();
   }
 
   void stopMeditation() {
+    final now = DateTime.now();
+    if (now.hour == 12 && now.minute >= 0 && now.minute < 6) {
+      _dismissedNoonDate = '${now.year}-${now.month}-${now.day}';
+    }
     isMeditationActive = false;
+    isMeditationSimulated = false;
     _meditationCountdownTimer?.cancel();
     if (currentTrack?.id.startsWith('meditation-') ?? false) {
-      _audioPlayer.pause();
+      isPlaying = false;
+      _audioPlayer.setReleaseMode(ReleaseMode.release);
+      _audioPlayer.stop();
+      if (songs.isNotEmpty) {
+        currentTrack = songs.first;
+      }
     }
     notifyListeners();
   }
@@ -757,6 +929,7 @@ class MusicProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _audioPlayer.dispose();
     _noonTimer?.cancel();
     _meditationCountdownTimer?.cancel();

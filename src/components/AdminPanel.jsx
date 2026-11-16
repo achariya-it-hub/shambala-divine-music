@@ -495,7 +495,7 @@ export const AdminPanel = () => {
           { id: 'r2_config', label: 'Cloudflare R2 Storage', icon: Cloud, badge: r2Config?.bucketName ? 'Connected' : 'Setup' },
           { id: 'add_song', label: 'Release New Song', icon: Upload },
           { id: 'podcast', label: 'Podcast Studio', icon: Podcast },
-          { id: 'live', label: 'Live Broadcast', icon: Radio },
+          { id: 'live', label: 'Live', icon: Radio },
           { id: 'accounts', label: `Account Manager (${accounts.length})`, icon: Users }
         ].map((tab) => {
           const Icon = tab.icon;
