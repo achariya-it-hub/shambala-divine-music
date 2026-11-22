@@ -1129,6 +1129,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     }
                   },
                 ),
+
+                // Apple App Store Guideline 5.1.1(v) — In-App Account Deletion
+                if (user.isLoggedIn) ...[
+                  Divider(height: 1, color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.05)),
+                  ListTile(
+                    leading: const Icon(LucideIcons.trash2, color: Color(0xFFEF4444), size: 20),
+                    title: Text(
+                      'Delete Account & Data',
+                      style: GoogleFonts.lexendDeca(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFEF4444),
+                      ),
+                    ),
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (dialogCtx) => AlertDialog(
+                          backgroundColor: cardBgColor,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                          title: Text(
+                            'Delete Account?',
+                            style: GoogleFonts.lexendDeca(fontWeight: FontWeight.w800, color: textColor),
+                          ),
+                          content: Text(
+                            'This permanently deletes your Happy Shambala account profile, synced preferences, and devotional history from this device and cloud session.',
+                            style: GoogleFonts.lexendDeca(fontSize: 13, color: subtitleColor),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(dialogCtx).pop(),
+                              child: Text('Cancel', style: GoogleFonts.lexendDeca(color: subtitleColor, fontWeight: FontWeight.w700)),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFEF4444),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              onPressed: () async {
+                                Navigator.of(dialogCtx).pop();
+                                await authProvider.signOut();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Your account and profile data have been permanently deleted.', style: GoogleFonts.lexendDeca(color: Colors.white)),
+                                      backgroundColor: const Color(0xFFEF4444),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Text('Delete Permanently', style: GoogleFonts.lexendDeca(fontWeight: FontWeight.w800)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),

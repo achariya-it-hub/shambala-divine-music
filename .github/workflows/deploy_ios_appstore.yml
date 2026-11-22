@@ -1,0 +1,166 @@
+name: Build & Push iOS App to Apple App Store Connect
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_id:
+        description: 'Apple Bundle Identifier (registered in Apple Developer Portal)'
+        required: false
+        default: 'com.shambala.divine.shambalaFlutter'
+      build_name:
+        description: 'Marketing Version (CFBundleShortVersionString)'
+        required: false
+        default: '1.1.1'
+      build_number:
+        description: 'Build Number (CFBundleVersion — increment each upload)'
+        required: false
+        default: '12'
+
+jobs:
+  build_and_upload_ios:
+    name: Build iOS IPA & Upload to App Store Connect
+    runs-on: macos-15
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter Stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Flutter Dependencies
+        working-directory: shambala_flutter
+        run: flutter pub get
+
+      - name: Update Bundle Identifier (if customized)
+        working-directory: shambala_flutter
+        env:
+          TARGET_BUNDLE_ID: ${{ github.event.inputs.bundle_id || secrets.IOS_BUNDLE_ID || 'com.shambala.divine.shambalaFlutter' }}
+        run: |
+          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.shambala.divine.shambalaFlutter;/PRODUCT_BUNDLE_IDENTIFIER = ${TARGET_BUNDLE_ID};/g" ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Install CocoaPods Dependencies
+        working-directory: shambala_flutter/ios
+        run: |
+          flutter precache --ios
+          pod install --repo-update
+
+      - name: Check if Apple Signing Secrets Are Configured
+        id: check_secrets
+        env:
+          CERT_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$CERT_BASE64" ] && [ -n "$PROFILE_BASE64" ] && [ -n "$TEAM_ID" ]; then
+            echo "signed=true" >> $GITHUB_OUTPUT
+          else
+            echo "signed=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ── SIGNED APP STORE CONNECT BUILD & UPLOAD ──
+      - name: Install Apple Distribution Certificate & Provisioning Profile
+        if: steps.check_secrets.outputs.signed == 'true'
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'shambala_temp_keychain_108' }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i $PP_PATH))
+          PP_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" /dev/stdin <<< $(/usr/bin/security cms -D -i $PP_PATH))
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          echo "PROVISIONING_UUID=$UUID" >> $GITHUB_ENV
+          echo "PROVISIONING_NAME=$PP_NAME" >> $GITHUB_ENV
+
+      - name: Create ExportOptions.plist & Build Signed IPA
+        if: steps.check_secrets.outputs.signed == 'true'
+        working-directory: shambala_flutter
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TARGET_BUNDLE_ID: ${{ github.event.inputs.bundle_id || secrets.IOS_BUNDLE_ID || 'com.shambala.divine.shambalaFlutter' }}
+          BUILD_NAME: ${{ github.event.inputs.build_name || '1.1.1' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build_number || github.run_number }}
+        run: |
+          cat <<EOF > $RUNNER_TEMP/ExportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${TARGET_BUNDLE_ID}</key>
+              <string>${PROVISIONING_NAME}</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+
+          flutter build ipa --release \
+            --build-name="$BUILD_NAME" \
+            --build-number="$BUILD_NUMBER" \
+            --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Upload Signed IPA to Apple App Store Connect / TestFlight
+        if: steps.check_secrets.outputs.signed == 'true' && secrets.APPSTORE_API_KEY_ID != ''
+        env:
+          API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$API_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8
+          IPA_FILE=$(find shambala_flutter/build/ios/ipa -name "*.ipa" | head -n 1)
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_FILE" \
+            --apiKey "$API_KEY_ID" \
+            --apiIssuer "$API_ISSUER_ID"
+
+      # ── UNSIGNED VERIFICATION BUILD (When Apple Secrets Not Yet Added) ──
+      - name: Build Unsigned Release iOS App (Pre-Signing Verification)
+        if: steps.check_secrets.outputs.signed == 'false'
+        working-directory: shambala_flutter
+        env:
+          BUILD_NAME: ${{ github.event.inputs.build_name || '1.1.1' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build_number || '12' }}
+        run: |
+          flutter build ios --release --no-codesign --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
+          mkdir -p build/ios/ipa/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa && zip -r Happy_Shambala_Unsigned_iOS.ipa Payload && rm -rf Payload
+
+      - name: Upload Built IPA as Downloadable GitHub Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Happy-Shambala-iOS-IPA
+          path: shambala_flutter/build/ios/ipa/*.ipa
+          retention-days: 30

@@ -56,7 +56,7 @@ class AuthProvider extends ChangeNotifier {
     _authError = null;
     notifyListeners();
 
-    if (!kIsWeb && (customEmail == null || customEmail.trim().isEmpty)) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android && (customEmail == null || customEmail.trim().isEmpty)) {
       try {
         final GoogleSignIn googleSignIn = GoogleSignIn(
           scopes: ['email', 'profile'],

@@ -397,7 +397,7 @@ export const AdminPanel = () => {
           {loginError && (
             <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center gap-3 text-rose-400 text-xs font-medium animate-shake">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>Invalid Username or Password. Try demo credentials below.</span>
+              <span>Invalid Username or Passcode. Authorized personnel only.</span>
             </div>
           )}
 
@@ -412,7 +412,7 @@ export const AdminPanel = () => {
                 required
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
-                placeholder="admin"
+                placeholder="Enter username"
                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-400 transition-all"
               />
             </div>
@@ -436,18 +436,6 @@ export const AdminPanel = () => {
               <span>Login to Admin Panel</span>
             </button>
           </form>
-
-          {/* Demo Passcode Hint Box */}
-          <div className="p-4 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-slate-300 text-xs space-y-1">
-            <div className="font-bold text-amber-400 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Default Admin Passcode:</span>
-            </div>
-            <div className="flex justify-between font-mono text-[11px] pt-1 text-slate-400">
-              <span>Username: <strong className="text-white">admin</strong></span>
-              <span>Passcode: <strong className="text-amber-400">shambala108</strong></span>
-            </div>
-          </div>
         </div>
       </div>
     );

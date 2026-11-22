@@ -2,7 +2,7 @@ name: shambala_flutter
 description: "A Spotify-like divine songs music app with offline caching, automated 12:00 PM meditation engine, and admin dashboard for iOS & Android."
 publish_to: 'none'
 
-version: 1.0.9+10
+version: 1.1.1+12
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

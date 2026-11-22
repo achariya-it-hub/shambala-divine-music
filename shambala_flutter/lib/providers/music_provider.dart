@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +20,9 @@ import '../data/initial_data.dart';
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
+  static const MethodChannel _noonAndroidChannel = MethodChannel('com.shambala.divine/noon_meditation');
+  bool _usingNativeAndroidPlayer = false;
+
   // Datasets
   List<Song> songs = List.from(initialSongs);
   List<PodcastShow> podcasts = List.from(initialPodcasts);
@@ -213,9 +217,14 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _syncFromNativeAndroidStatus();
       _checkNoonWindow();
       if (isDailyMeditationScheduled && !kIsWeb) {
-        _scheduleDailyNoonNotification();
+        if (Platform.isAndroid) {
+          _syncBackgroundKeepAlive(requestPermission: false);
+        } else {
+          _scheduleDailyNoonNotification();
+        }
       }
     }
   }
@@ -290,10 +299,11 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
       isDailyMeditationScheduled = prefs.getBool('is_daily_meditation_scheduled')!;
     }
     
-    if (isDailyMeditationScheduled && !kIsWeb) {
+    if (isDailyMeditationScheduled && !kIsWeb && !Platform.isAndroid) {
       await _scheduleDailyNoonNotification();
     }
-    await _syncBackgroundKeepAlive();
+    await _syncBackgroundKeepAlive(requestPermission: false);
+    await _syncFromNativeAndroidStatus();
     _checkNoonWindow();
     notifyListeners();
   }
@@ -362,38 +372,78 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  /// Keeps the app process alive (media-playback foreground service) so the
-  /// Dart 12:00 PM timer keeps running and meditation audio auto-plays even
-  /// when the app is minimized or the screen is off.
-  Future<void> _syncBackgroundKeepAlive() async {
+  /// Syncs the native Android AlarmManager + Foreground MediaPlayer Service so
+  /// 12:00 PM meditation audio starts playing automatically in the background
+  /// even when the app is minimized, swiped away, or the screen is locked.
+  Future<void> _syncBackgroundKeepAlive({bool requestPermission = false}) async {
     if (kIsWeb || !Platform.isAndroid) return;
     try {
-      final androidPlugin = flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-      if (androidPlugin == null) return;
-      if (isDailyMeditationScheduled) {
-        await androidPlugin.startForegroundService(
-          1080,
-          'Happy Shambala • 12:00 PM Meditation',
-          'Daily meditation will start automatically at 12:00 PM',
-          notificationDetails: const AndroidNotificationDetails(
-            'meditation_keepalive',
-            'Meditation Scheduler',
-            channelDescription: 'Keeps the 12:00 PM meditation ready',
-            importance: Importance.low,
-            priority: Priority.low,
-            ongoing: true,
-            playSound: false,
-            enableVibration: false,
-          ),
-          startType: AndroidServiceStartType.startSticky,
-          foregroundServiceTypes: {AndroidServiceForegroundType.foregroundServiceTypeMediaPlayback},
-        );
-      } else {
-        await androidPlugin.stopForegroundService();
+      await _noonAndroidChannel.invokeMethod('syncSchedule', {
+        'enabled': isDailyMeditationScheduled,
+        'requestPermission': requestPermission,
+      });
+    } catch (e) {
+      debugPrint('Native noon schedule sync notice: $e');
+    }
+  }
+
+  Future<void> _syncFromNativeAndroidStatus() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+    try {
+      final raw = await _noonAndroidChannel.invokeMethod('getStatus');
+      if (raw is Map) {
+        final sessionActive = raw['isSessionActive'] == true;
+        if (sessionActive) {
+          final dayIdx = (raw['dayIndex'] as int?) ?? DateTime.now().weekday;
+          final remSec = (raw['remainingSec'] as int?) ?? 360;
+          final nativePlaying = raw['isPlaying'] == true;
+          final simulated = raw['isSimulated'] == true;
+          final track = meditationSchedule.firstWhere(
+            (m) => m.dayIndex == dayIdx,
+            orElse: () => meditationSchedule.first,
+          );
+
+          // Pause Dart audioPlayer if it was playing another song so there's no overlap
+          if (_audioPlayer.state == PlayerState.playing) {
+            await _audioPlayer.pause();
+          }
+
+          activeMeditationTrack = track;
+          isMeditationActive = true;
+          isMeditationSimulated = simulated;
+          _usingNativeAndroidPlayer = true;
+          meditationTimeRemaining = remSec > 0 ? remSec : 1;
+          isPlaying = nativePlaying;
+          currentTrack = Song(
+            id: '${simulated ? "meditation-sim" : "meditation-noon"}-${track.dayIndex}',
+            title: track.title,
+            artist: '${track.dayName} 12:00 PM Session',
+            album: 'Daily Noon Meditation',
+            category: 'Meditation',
+            duration: '06:00',
+            durationSec: 360,
+            coverUrl: track.coverUrl,
+            audioUrl: track.audioUrl,
+            lyrics: track.mantra,
+            plays: '108',
+          );
+          _startMeditationCountdown();
+          notifyListeners();
+        } else if (_usingNativeAndroidPlayer && isMeditationActive) {
+          // Native session ended or was stopped via notification Stop button
+          _usingNativeAndroidPlayer = false;
+          isMeditationActive = false;
+          isMeditationSimulated = false;
+          isPlaying = false;
+          _meditationCountdownTimer?.cancel();
+          if (songs.isNotEmpty) {
+            currentTrack = songs.first;
+          }
+          notifyListeners();
+        }
       }
     } catch (e) {
-      debugPrint('Keep-alive service notice: $e');
+      debugPrint('Native noon status check notice: $e');
     }
   }
 
@@ -401,15 +451,15 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
     isDailyMeditationScheduled = !isDailyMeditationScheduled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_daily_meditation_scheduled', isDailyMeditationScheduled);
-    await _syncBackgroundKeepAlive();
+    await _syncBackgroundKeepAlive(requestPermission: isDailyMeditationScheduled);
     
     if (isDailyMeditationScheduled) {
       _dismissedNoonDate = null;
-      if (!kIsWeb) await _scheduleDailyNoonNotification();
-      // Check if it is currently 12:00 PM - 12:06 PM; if so, open immediately!
+      if (!kIsWeb && !Platform.isAndroid) await _scheduleDailyNoonNotification();
+      await _syncFromNativeAndroidStatus();
       _checkNoonWindow();
     } else {
-      if (!kIsWeb) await flutterLocalNotificationsPlugin.cancel(108);
+      if (!kIsWeb && !Platform.isAndroid) await flutterLocalNotificationsPlugin.cancel(108);
       if (isMeditationActive && !isMeditationSimulated) {
         stopMeditation();
       }
@@ -524,6 +574,9 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
   void _startNoonTimer() {
     _noonTimer?.cancel();
     _noonTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!kIsWeb && Platform.isAndroid && _usingNativeAndroidPlayer) {
+        _syncFromNativeAndroidStatus();
+      }
       _checkNoonWindow();
     });
   }
@@ -534,8 +587,10 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (meditationTimeRemaining <= 1) {
         stopMeditation();
       } else {
-        meditationTimeRemaining--;
-        notifyListeners();
+        if (isPlaying) {
+          meditationTimeRemaining--;
+          notifyListeners();
+        }
       }
     });
   }
@@ -557,6 +612,25 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
     currentTrack = medSong;
     isPlaying = true;
     notifyListeners();
+
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        await _audioPlayer.stop();
+        _usingNativeAndroidPlayer = true;
+        await _noonAndroidChannel.invokeMethod('startPlayback', {
+          'dayIndex': track.dayIndex,
+          'durationSec': meditationTimeRemaining > 0 ? meditationTimeRemaining : 360,
+          'isSimulated': isSimulated,
+          'volume': isMuted ? 0.0 : volume,
+        });
+        isPlaying = true;
+        notifyListeners();
+        return;
+      } catch (e) {
+        _usingNativeAndroidPlayer = false;
+        debugPrint('Native meditation playback fallback notice: $e');
+      }
+    }
 
     Future<void> attemptStart() async {
       if (!isMeditationActive) return;
@@ -582,7 +656,7 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Verify & retry after 600ms and 1600ms in case the Activity was waking from background
     for (final delayMs in [600, 1600]) {
       Future.delayed(Duration(milliseconds: delayMs), () async {
-        if (isMeditationActive && _audioPlayer.state != PlayerState.playing) {
+        if (isMeditationActive && !_usingNativeAndroidPlayer && _audioPlayer.state != PlayerState.playing) {
           await attemptStart();
         }
       });
@@ -591,6 +665,10 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> ensureMeditationAudioPlaying() async {
     if (!isMeditationActive || activeMeditationTrack == null) return;
+    if (!kIsWeb && Platform.isAndroid && _usingNativeAndroidPlayer) {
+      await _syncFromNativeAndroidStatus();
+      return;
+    }
     if (_audioPlayer.state != PlayerState.playing) {
       await _playMeditationTrackAudio(activeMeditationTrack!, isSimulated: isMeditationSimulated);
     }
@@ -615,12 +693,25 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void stopMeditation() {
     final now = DateTime.now();
-    if (now.hour == 12 && now.minute >= 0 && now.minute < 6) {
+    final inNoonWindow = now.hour == 12 && now.minute >= 0 && now.minute < 6;
+    if (inNoonWindow) {
       _dismissedNoonDate = '${now.year}-${now.month}-${now.day}';
     }
     isMeditationActive = false;
     isMeditationSimulated = false;
     _meditationCountdownTimer?.cancel();
+    if (!kIsWeb && Platform.isAndroid && _usingNativeAndroidPlayer) {
+      _usingNativeAndroidPlayer = false;
+      isPlaying = false;
+      _noonAndroidChannel.invokeMethod('stopPlayback', {
+        'markDismissed': inNoonWindow,
+      });
+      if (songs.isNotEmpty) {
+        currentTrack = songs.first;
+      }
+      notifyListeners();
+      return;
+    }
     if (currentTrack?.id.startsWith('meditation-') ?? false) {
       isPlaying = false;
       _audioPlayer.setReleaseMode(ReleaseMode.release);
@@ -714,6 +805,23 @@ class MusicProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> togglePlay() async {
+    if (!kIsWeb && Platform.isAndroid && _usingNativeAndroidPlayer && isMeditationActive) {
+      if (isPlaying) {
+        isPlaying = false;
+        notifyListeners();
+        try {
+          await _noonAndroidChannel.invokeMethod('pausePlayback');
+        } catch (_) {}
+      } else {
+        isPlaying = true;
+        notifyListeners();
+        try {
+          await _noonAndroidChannel.invokeMethod('resumePlayback');
+        } catch (_) {}
+      }
+      return;
+    }
+
     if (isPlaying) {
       isPlaying = false;
       notifyListeners();

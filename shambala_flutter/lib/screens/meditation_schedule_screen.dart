@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -6,8 +7,29 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/music_provider.dart';
 import '../widgets/meditation_modal.dart';
 
-class MeditationScheduleScreen extends StatelessWidget {
+class MeditationScheduleScreen extends StatefulWidget {
   const MeditationScheduleScreen({super.key});
+
+  @override
+  State<MeditationScheduleScreen> createState() => _MeditationScheduleScreenState();
+}
+
+class _MeditationScheduleScreenState extends State<MeditationScheduleScreen> {
+  Timer? _countdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
 
   String _getTimeUntilNoonStr() {
     final now = DateTime.now();
@@ -46,16 +68,24 @@ class MeditationScheduleScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        titleSpacing: 0,
         leading: IconButton(
           icon: Icon(LucideIcons.arrowLeft, color: textColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          '12:00 PM Meditation Scheduler',
-          style: GoogleFonts.lexendDeca(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: textColor,
+        title: Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '12 Noon Meditation',
+              style: GoogleFonts.lexendDeca(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: textColor,
+              ),
+            ),
           ),
         ),
       ),
@@ -85,56 +115,119 @@ class MeditationScheduleScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: crimsonColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: crimsonColor.withOpacity(0.4)),
+                  // Centered Top Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: crimsonColor.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0x66FACC15)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(LucideIcons.sparkles, color: Color(0xFFFACC15), size: 14),
+                        const SizedBox(width: 6),
+                        Text(
+                          'GLOBAL NOON MEDITATION',
+                          style: GoogleFonts.lexendDeca(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFFFACC15),
+                            letterSpacing: 0.8,
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(LucideIcons.sparkles, color: Color(0xFFFACC15), size: 14),
-                            const SizedBox(width: 6),
-                            Text(
-                              'GLOBAL NOON MEDITATION',
-                              style: GoogleFonts.lexendDeca(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFFFACC15),
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Dedicated High-Contrast Daily Alarm Toggle Bar
+                  GestureDetector(
+                    onTap: provider.toggleDailyMeditationSchedule,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: provider.isDailyMeditationScheduled
+                            ? const Color(0x2EFACC15)
+                            : const Color(0x1AFFFFFF),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: provider.isDailyMeditationScheduled
+                              ? const Color(0xFFFACC15)
+                              : Colors.white30,
+                          width: 1.4,
                         ),
                       ),
-
-                      // Auto-Schedule Switch
-                      Row(
+                      child: Row(
                         children: [
-                          Text(
-                            'Daily Alarm',
-                            style: GoogleFonts.lexendDeca(
-                              fontSize: 11,
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w600,
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: provider.isDailyMeditationScheduled
+                                  ? const Color(0xFFFACC15)
+                                  : Colors.white24,
+                            ),
+                            child: Icon(
+                              LucideIcons.bellRing,
+                              size: 18,
+                              color: provider.isDailyMeditationScheduled
+                                  ? const Color(0xFF1E1B4B)
+                                  : Colors.white,
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Daily Alarm (12:00 PM)',
+                                  style: GoogleFonts.lexendDeca(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  provider.isDailyMeditationScheduled
+                                      ? 'ON • Auto-plays at 12:00 Noon'
+                                      : 'OFF • Tap to enable daily alarm',
+                                  style: GoogleFonts.lexendDeca(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: provider.isDailyMeditationScheduled
+                                        ? const Color(0xFFFDE047)
+                                        : Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Switch(
                             value: provider.isDailyMeditationScheduled,
-                            activeThumbColor: Colors.white,
-                            activeTrackColor: amberColor,
+                            activeThumbColor: const Color(0xFF1E1B4B),
+                            activeTrackColor: const Color(0xFFFACC15),
+                            inactiveThumbColor: Colors.white,
+                            inactiveTrackColor: const Color(0x55FFFFFF),
+                            trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+                              if (states.contains(WidgetState.selected)) {
+                                return const Color(0xFFFDE047);
+                              }
+                              return Colors.white54;
+                            }),
                             onChanged: (_) => provider.toggleDailyMeditationSchedule(),
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
                   // Countdown Timer
                   Text(
@@ -202,20 +295,28 @@ class MeditationScheduleScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // ── Section Title: Weekly 7-Day Meditation Schedule ──
-            Row(
-              children: [
-                Icon(LucideIcons.calendar, color: amberColor, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  '7-Day Weekly Meditation Schedule',
-                  style: GoogleFonts.lexendDeca(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                    color: textColor,
+            // ── Section Title: 12 Noon Meditation ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(LucideIcons.calendar, color: amberColor, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '12 Noon Meditation',
+                      maxLines: 1,
+                      overflow: TextOverflow.visible,
+                      style: GoogleFonts.lexendDeca(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: textColor,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 14),
 
@@ -275,12 +376,16 @@ class MeditationScheduleScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  alignment: WrapAlignment.spaceBetween,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: isToday ? crimsonColor : amberColor.withOpacity(0.15),
+                                        color: isToday ? crimsonColor : amberColor.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
@@ -292,7 +397,6 @@ class MeditationScheduleScreen extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                    const Spacer(),
                                     Text(
                                       '12:00 PM • 6 mins',
                                       style: GoogleFonts.lexendDeca(
